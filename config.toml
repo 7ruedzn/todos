@@ -1,0 +1,6 @@
+#INFO: this is just a placeholder file used for testing. Adjusted it as needed
+[config]
+path = "$HOME/.config/todos/config.toml"
+
+[todos]
+path = "$HOME/.config/todos/todos.json"
