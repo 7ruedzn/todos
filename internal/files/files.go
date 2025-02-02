@@ -75,8 +75,6 @@ func Load() ([]byte, error) {
 	path := filepath.Join(home, viper.GetString("todos.path"))
 	_, statErr := os.Stat(path)
 
-	fmt.Println("stat err: ", statErr)
-
 	if statErr != nil {
 		err = Create([]byte("[]"))
 		if err != nil {

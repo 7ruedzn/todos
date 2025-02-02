@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/7ruedzn/todos/internal/files"
 	"github.com/7ruedzn/todos/internal/output"
@@ -10,34 +9,32 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var all bool
+
 var listCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls", "get"},
 	Short:   "List your todos",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Long:    "List all your todos. You can specify with the -a or --all flag to also list already completed todos",
+	Run:     runList,
+}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("args: ", args)
-		b, err := files.Load()
-		if err != nil {
-			files.Create([]byte("[]"))
-			panic(err)
-		}
+func runList(cmd *cobra.Command, args []string) {
+	b, err := files.Load()
+	if err != nil {
+		files.Create([]byte("[]"))
+		panic(err)
+	}
 
-		todos := []models.Todo{}
-		if err := json.Unmarshal(b, &todos); err != nil {
-			panic(err)
-		}
+	todos := []models.Todo{}
+	if err := json.Unmarshal(b, &todos); err != nil {
+		panic(err)
+	}
 
-		output.ListTodos(todos, true) //TODO: create a flag to list if the todo is done or not
-	},
+	output.ListTodos(todos, all)
 }
 
 func init() {
 	rootCmd.AddCommand(listCmd)
-	listCmd.Flags().BoolP("all", "a", false, "See all your todos, including the already completed!")
+	listCmd.Flags().BoolVarP(&all, "all", "a", false, "See all your todos, including the already completed!")
 }

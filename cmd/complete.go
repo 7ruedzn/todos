@@ -1,40 +1,49 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
-	"fmt"
+	"encoding/json"
+	"strconv"
 
+	"github.com/7ruedzn/todos/internal/files"
+	"github.com/7ruedzn/todos/models"
 	"github.com/spf13/cobra"
 )
 
-// completeCmd represents the complete command
 var completeCmd = &cobra.Command{
-	Use:   "complete",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:     "complete",
+	Aliases: []string{"finish", "done"},
+	Short:   "Set a todo as finished!",
+	Long:    "Set a todo you've created as done. This way you can keep track off the complete todos and the still on progress",
+	Run:     runComplete,
+}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("complete called")
-	},
+func runComplete(cmd *cobra.Command, args []string) {
+	todos := models.GetTodos()
+	id, err := strconv.Atoi(args[0])
+	if err != nil {
+		panic(err)
+	}
+
+	todo, err := models.GetTodo(id, todos)
+	if err != nil {
+		panic(err)
+	}
+
+	updatedTodos, err := todo.UpdateTodos()
+	if err != nil {
+		panic(err)
+	}
+
+	b, err := json.Marshal(&updatedTodos)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := files.Write(b); err != nil {
+		panic(err)
+	}
 }
 
 func init() {
 	rootCmd.AddCommand(completeCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// completeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// completeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
