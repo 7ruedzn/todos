@@ -48,8 +48,10 @@ func initConfig() {
 
 		// Search config in $HOME/.config/todos/
 		defaultPath := filepath.Join(home, ".config", "todos")
-		fmt.Println("default path: ", defaultPath)
+		viper.SetDefault("todos_path", filepath.Join(defaultPath, "todos.json"))
+		viper.SetDefault("config_path", filepath.Join(defaultPath, "config.toml"))
 		viper.AddConfigPath(defaultPath)
+		viper.AddConfigPath(".") // look into current dir
 		viper.SetConfigType("toml")
 		viper.SetConfigName("config") // find for config.toml file
 	}
@@ -59,17 +61,5 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-		cfgPath := viper.GetString("config.path")  // access nested fields with .
-		todosPath := viper.GetString("todos.path") // access nested fields with .
-		fmt.Println("cfg path: ", cfgPath)
-		fmt.Println("todos path", todosPath)
-		// app := models.App{
-		// 	Todos: []models.Todo{},
-		// 	Config: models.Config{
-		// 		Path: cfgPath,
-		// 	},
-		// }
-	} else {
-		fmt.Println("No config file found!")
 	}
 }

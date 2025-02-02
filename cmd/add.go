@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/7ruedzn/todos/internal/files"
+	"github.com/7ruedzn/todos/internal/output"
 	"github.com/7ruedzn/todos/models"
 	"github.com/spf13/cobra"
 )
@@ -14,8 +17,13 @@ var addCmd = &cobra.Command{
 	Short:   "Add a new todo",                                       // short description of the command
 	Long:    "Add a new todo you're planning or already working on", // long description of the command
 	Run: func(cmd *cobra.Command, args []string) {
-		todo := models.AddTodo([]models.Todo{}, args[0])
-		fmt.Println("todo added: ", todo)
+		todos := models.GetTodos()
+		newTodos, todo := models.AddTodo(todos, args[0])
+		fmt.Println("new todos", newTodos)
+		b, err := json.Marshal(newTodos)
+		cobra.CheckErr(err)
+		files.Write(b)
+		output.ListAddedTodo(todo)
 	},
 }
 

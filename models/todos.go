@@ -3,7 +3,6 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"slices"
 	"time"
 
@@ -17,13 +16,8 @@ type Todo struct {
 	Done        bool
 }
 
-func New(description string) *Todo {
-	return &Todo{
-		// Id:          len(todos) + 1,
-		Description: description,
-		CreatedAt:   time.Now(),
-		Done:        false,
-	}
+type Todos struct {
+	Todos []Todo
 }
 
 func GetTodo(id int, todos []Todo) (*Todo, error) {
@@ -36,12 +30,20 @@ func GetTodo(id int, todos []Todo) (*Todo, error) {
 	return nil, fmt.Errorf("todo with id %d not found\n", id)
 }
 
-func GetTodos() *[]Todo {
+func GetTodos() []Todo {
 	b, err := files.Load()
 	if err != nil {
+		fmt.Println("Load file err: ", err)
 		if errFile := files.Create([]byte("{}")); errFile != nil {
+			fmt.Println("GET TODOS. Err creating file if cant load file")
 			panic(errFile)
 		}
+	}
+
+	b, err = files.Load()
+
+	if err != nil {
+		panic(err)
 	}
 
 	todos := []Todo{}
@@ -49,14 +51,14 @@ func GetTodos() *[]Todo {
 		panic(err)
 	}
 
-	return &todos
+	return todos
 }
 
 func DeleteTodo(id int) error {
-	todos := *GetTodos()
+	todos := GetTodos()
 
 	if id == 0 || id > len(todos) {
-		fmt.Fprintf(os.Stderr, "the todo with id %d doesnt exists!\n", id)
+		return fmt.Errorf("the todo with id %d doesnt exists! See usage with %q or use %q to list your todos!\n", id, "help", "todos list -a")
 	}
 
 	todos = slices.Delete(todos, (id - 1), id)
@@ -70,19 +72,19 @@ func DeleteTodo(id int) error {
 	b, err := json.Marshal(&todos)
 
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	err = files.Write(b)
 
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	return nil
 }
 
-func AddTodo(todos []Todo, description string) []Todo {
+func AddTodo(todos []Todo, description string) ([]Todo, Todo) {
 	todo := Todo{
 		Id:          len(todos) + 1,
 		Description: description,
@@ -92,7 +94,7 @@ func AddTodo(todos []Todo, description string) []Todo {
 
 	todos = append(todos, todo)
 
-	return todos
+	return todos, todo
 }
 
 func (todo *Todo) UpdateTodos() (*[]Todo, error) {
@@ -100,7 +102,7 @@ func (todo *Todo) UpdateTodos() (*[]Todo, error) {
 		return nil, fmt.Errorf("the todo with id %d is already complete\n", todo.Id)
 	}
 
-	todos := *GetTodos() //TODO: load the file from app
+	todos := GetTodos() //TODO: load the file from app
 	for i := 0; i < len(todos); i++ {
 		if todo.Id == todos[i].Id {
 			todos[i].Done = true

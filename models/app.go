@@ -8,3 +8,11 @@ type App struct {
 type Config struct {
 	Path string
 }
+
+func (a *App) GetApp() *App {
+	return a
+}
+
+func New() *App {
+	return &App{}
+}

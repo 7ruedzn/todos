@@ -4,13 +4,22 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/spf13/viper"
 )
 
 // INFO: can be changed if needed
-var TODOS_FILE_PATH string = filepath.Join("storage", "todos.json")
-
 func Write(data []byte) error {
-	file, err := os.Create(TODOS_FILE_PATH)
+	path := viper.GetString("todos_path")
+	if path == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		path = filepath.Join(home, ".config", "todos", "todos.json")
+	}
+
+	file, err := os.Create(path)
 	if err != nil {
 		panic(err)
 	}
@@ -29,15 +38,22 @@ func Write(data []byte) error {
 	return nil
 }
 
-func Create(defaultData []byte) error {
-	file, err := os.Create(TODOS_FILE_PATH)
+func Create(b []byte) error {
+	home, err := os.UserHomeDir()
+
 	if err != nil {
+		return err
+	}
+
+	file, err := os.Create(filepath.Join(home, viper.GetString("todos.path")))
+	if err != nil {
+		fmt.Println("err creating file: ", err)
 		return err
 	}
 
 	defer file.Close()
 
-	_, wErr := file.Write(defaultData)
+	_, wErr := file.Write(b)
 	if wErr != nil {
 		return wErr
 	}
@@ -50,17 +66,29 @@ func Create(defaultData []byte) error {
 }
 
 func Load() ([]byte, error) {
-	_, statErr := os.Stat(TODOS_FILE_PATH)
+	home, err := os.UserHomeDir()
 
-	if statErr == nil {
-		b, err := os.ReadFile(TODOS_FILE_PATH)
+	if err != nil {
+		return nil, err
+	}
 
+	path := filepath.Join(home, viper.GetString("todos.path"))
+	_, statErr := os.Stat(path)
+
+	fmt.Println("stat err: ", statErr)
+
+	if statErr != nil {
+		err = Create([]byte("[]"))
 		if err != nil {
 			panic(err)
 		}
-
-		return b, nil
 	}
 
-	return []byte{}, fmt.Errorf("file not found!\n")
+	b, err := os.ReadFile(path)
+
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+
+	return b, nil
 }
