@@ -3,11 +3,11 @@ package cmd
 import (
 	"encoding/json"
 
+	"github.com/7ruedzn/todos/internal/config"
 	"github.com/7ruedzn/todos/internal/files"
 	"github.com/7ruedzn/todos/internal/models"
 	"github.com/7ruedzn/todos/internal/output"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var addCmd = &cobra.Command{
@@ -20,16 +20,24 @@ var addCmd = &cobra.Command{
 }
 
 func runAdd(cmd *cobra.Command, args []string) {
-	todos := models.GetTodos()
-	todosPath := viper.GetString("todos.path")
-	newTodos, todo := models.AddTodo(todos, args[0])
-	b, err := json.Marshal(newTodos)
-	cobra.CheckErr(err)
-
-	if err := files.Write(b, todosPath); err != nil {
-		cobra.CheckErr(err)
+	todos, err := models.GetTodos()
+	if err != nil {
+		config.ErrorLog.Fatalln("Couldn't get todos: ", err)
 	}
 
+	todosPath := config.AppInstance.Config.TodosPath
+	newTodos, todo := models.AddTodo(todos, args[0])
+	b, err := json.Marshal(newTodos)
+
+	if err != nil {
+		config.ErrorLog.Fatalf("Couldn't marshal new todos %+v: %v\n", newTodos, err)
+	}
+
+	if err := files.Write(b, todosPath); err != nil {
+		config.ErrorLog.Fatalf("Couldn't write a new todo with %s: %v: ", string(b), err)
+	}
+
+	config.InfoLog.Printf("Todo with id %d added successfully\n", todo.Id)
 	output.ListAddedTodo(todo)
 }
 

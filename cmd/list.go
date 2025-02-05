@@ -3,11 +3,11 @@ package cmd
 import (
 	"encoding/json"
 
+	"github.com/7ruedzn/todos/internal/config"
 	"github.com/7ruedzn/todos/internal/files"
 	"github.com/7ruedzn/todos/internal/models"
 	"github.com/7ruedzn/todos/internal/output"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var all bool
@@ -21,18 +21,18 @@ var listCmd = &cobra.Command{
 }
 
 func runList(cmd *cobra.Command, args []string) {
-	todosPath := viper.GetString("todos.path")
+	todosPath := config.AppInstance.Config.TodosPath
 	b, err := files.Load(todosPath)
 
 	if err != nil {
 		if err := files.Create(todosPath); err != nil {
-			panic(err)
+			config.ErrorLog.Fatalln("Couldn't create the todos file: ", err)
 		}
 	}
 
 	todos := []models.Todo{}
 	if err := json.Unmarshal(b, &todos); err != nil && len(b) > 0 {
-		panic(err)
+		config.ErrorLog.Fatalln("Couldn't unmarshal the todos file: ", err)
 	}
 
 	output.ListTodos(todos, all)

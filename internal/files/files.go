@@ -37,7 +37,7 @@ func Create(path string) error {
 
 func Load(path string) ([]byte, error) {
 	if path == "" {
-		return nil, fmt.Errorf("path cannot be empty")
+		return nil, fmt.Errorf("Path cannot be empty")
 	}
 
 	b, err := os.ReadFile(path)

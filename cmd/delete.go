@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
 	"strconv"
 
+	"github.com/7ruedzn/todos/internal/config"
 	"github.com/7ruedzn/todos/internal/models"
 	"github.com/spf13/cobra"
 )
@@ -21,13 +20,14 @@ var deleteCmd = &cobra.Command{
 func runDelete(cmd *cobra.Command, args []string) {
 	id, err := strconv.Atoi(args[0])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "you provided %s instead of an integer. Please provide an integer to delete an existing todo or for help see usage with %q.\n", args[0], "help")
-		cobra.CheckErr(err)
+		config.WarningLog.Printf("Couldn't delete todo. Provided %s instead of an todo id of type int\n", args[0])
 	}
 
 	if err := models.DeleteTodo(id); err != nil {
-		cobra.CheckErr(err)
+		config.ErrorLog.Fatalln("Couldn't delete todo: ", err)
 	}
+
+	config.InfoLog.Printf("Todo with id %d deleted successfully\n", id)
 }
 
 func init() {

@@ -14,14 +14,14 @@ import (
 var AppInstance App
 
 type App struct {
-	currentTodos []models.Todo
-	config       Config
+	CurrentTodos []models.Todo
+	Config       Config
 }
 
 type Config struct {
-	todosPath  string
-	configPath string
-	logsPath   string
+	TodosPath  string
+	ConfigPath string
+	LogsPath   string
 }
 
 func createFileIfNotExist(paths []string) error {
@@ -61,11 +61,11 @@ func LoadConfig() error {
 	}
 
 	AppInstance = App{
-		currentTodos: todos,
-		config: Config{
-			todosPath:  todosPath,
-			configPath: configPath,
-			logsPath:   logsPath,
+		CurrentTodos: todos,
+		Config: Config{
+			TodosPath:  todosPath,
+			ConfigPath: configPath,
+			LogsPath:   logsPath,
 		},
 	}
 

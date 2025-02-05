@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -12,11 +11,8 @@ import (
 )
 
 var (
-	app           config.App
-	cfgFile       string // provided from the --config flag
-	WarningLogger *log.Logger
-	InfoLogger    *log.Logger
-	ErrorLogger   *log.Logger
+	app     config.App
+	cfgFile string // provided from the --config flag
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -46,7 +42,10 @@ func init() {
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	home, err := os.UserHomeDir()
-	cobra.CheckErr(err) // os.Exit(1) if error is found
+	if err != nil {
+		config.ErrorLog.Fatalln("Couldn't find home dir: ", err)
+	}
+
 	defaultPath := filepath.Join(home, ".config", "todos")
 	configPath := filepath.Join(defaultPath, "config.toml")
 
@@ -67,20 +66,23 @@ func initConfig() {
 	// if the config file is found, reads it
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			fmt.Println("Config file not found, creating default config") //TODO: log this
+			config.WarningLog.Println("Config file was not found. Using the default params.")
 			if err := viper.SafeWriteConfigAs(configPath); err != nil {
-				fmt.Println("Error while creating config file: ", err)
-				panic(err)
+				config.ErrorLog.Fatalln("Couldn't create the config file: ", err)
 			}
 		} else {
-			fmt.Println("error reading config", err)
-			panic(err)
+			config.ErrorLog.Fatalln("Couldn't read the config file: ", err)
 		}
 	}
 
 	if err := config.LoadConfig(); err != nil {
-		panic(err)
+		config.ErrorLog.Fatalln("Couldn't load config: ", err)
 	}
 
-	fmt.Printf("app: %+v\n", config.AppInstance)
+	if err := config.SetupLogs(); err != nil {
+		config.ErrorLog.Fatalln("Couldn't setup logs: ", err)
+	}
+
+	defer config.LogFile.Close()
+	config.InfoLog.Println("Setup completed successfully")
 }

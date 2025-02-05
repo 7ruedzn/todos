@@ -27,53 +27,54 @@ func GetTodo(id int, todos []Todo) (*Todo, error) {
 	return nil, fmt.Errorf("todo with id %d not found\n", id)
 }
 
-func GetTodos() []Todo {
+func GetTodos() ([]Todo, error) {
 	todos := []Todo{}
 	todosPath := viper.GetString("todos.path")
+
 	if todosPath == "" {
-		fmt.Println("Todos path is empty: ", todosPath)
+		return nil, fmt.Errorf("Path to todos file can't be empty")
 	}
+
 	b, err := files.Load(todosPath)
 	if err != nil {
 		if err := files.Create(todosPath); err != nil {
-			fmt.Println("err creating file on get todos", err)
-			panic(err)
+			return nil, err
 		}
-		return todos
+		return todos, nil
 	}
 
 	b, err = files.Load(todosPath)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	if err := json.Unmarshal(b, &todos); err != nil && len(b) > 0 {
-		panic(err)
+		return nil, err
 	}
 
-	return todos
+	return todos, nil
 }
 
 func DeleteTodo(id int) error {
 	todosPath := viper.GetString("todos.path")
-	todos := GetTodos()
+	todos, err := GetTodos()
+
+	if err != nil {
+		return err
+	}
 
 	if id == 0 || id > len(todos) {
 		return fmt.Errorf("the todo with id %d doesnt exists! See usage with %q or use %q to list your todos!\n", id, "help", "todos list -a")
 	}
 
-	fmt.Println("todos before delete: ", todos)
 	todos = slices.Delete(todos, (id - 1), id)
-	fmt.Println("todos after delete: ", todos)
 
 	//INFO: range returns a COPY of the element, not the pointer.
 	// this way you access directly the todo reference
 	for i := 0; i < len(todos); i++ {
 		todos[i].Id = i + 1
 	}
-
-	fmt.Println("todos after id re assign: ", todos)
 
 	b, err := json.Marshal(&todos)
 
@@ -106,7 +107,11 @@ func (todo *Todo) UpdateTodos() (*[]Todo, error) {
 		return nil, fmt.Errorf("the todo with id %d is already complete\n", todo.Id)
 	}
 
-	todos := GetTodos() //TODO: load the file from app
+	todos, err := GetTodos() //TODO: load the file from app
+	if err != nil {
+		return nil, err
+	}
+
 	for i := 0; i < len(todos); i++ {
 		if todo.Id == todos[i].Id {
 			todos[i].Done = true
