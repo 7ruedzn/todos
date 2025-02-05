@@ -2,15 +2,21 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/7ruedzn/todos/internal/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var (
-	cfgFile string // provided from the --output flag
+	app           config.App
+	cfgFile       string // provided from the --config flag
+	WarningLogger *log.Logger
+	InfoLogger    *log.Logger
+	ErrorLogger   *log.Logger
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -39,27 +45,42 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	fmt.Println("cfg file: ", cfgFile)
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile) // Use config file from the flag --config flag
-	} else {
-		home, err := os.UserHomeDir() // Find home directory.
-		cobra.CheckErr(err)           // check for errors. If found, prints it and exit with code 1
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err) // os.Exit(1) if error is found
+	defaultPath := filepath.Join(home, ".config", "todos")
+	configPath := filepath.Join(defaultPath, "config.toml")
 
-		// Search config in $HOME/.config/todos/
-		defaultPath := filepath.Join(home, ".config", "todos")
-		viper.SetDefault("todos_path", filepath.Join(defaultPath, "todos.json"))
-		viper.SetDefault("config_path", filepath.Join(defaultPath, "config.toml"))
-		viper.AddConfigPath(defaultPath)
-		viper.AddConfigPath(".") // look into current dir
-		viper.SetConfigType("toml")
-		viper.SetConfigName("config") // find for config.toml file
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile) // Use config file provided by the --config flag
+	} else {
+		viper.SetDefault("config.path", filepath.Join(defaultPath, "config.toml"))
+		viper.SetDefault("todos.path", filepath.Join(defaultPath, "todos.json"))
+		viper.SetDefault("logs.path", filepath.Join(defaultPath, "logs.txt"))
+		viper.AddConfigPath(defaultPath) // look into $HOME/.config/todos/
+		viper.AddConfigPath(".")         // look into current dir
+		viper.SetConfigType("toml")      // set the config type to look into
+		viper.SetConfigName("config")    // set the config name to look into
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
 
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	// if the config file is found, reads it
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			fmt.Println("Config file not found, creating default config") //TODO: log this
+			if err := viper.SafeWriteConfigAs(configPath); err != nil {
+				fmt.Println("Error while creating config file: ", err)
+				panic(err)
+			}
+		} else {
+			fmt.Println("error reading config", err)
+			panic(err)
+		}
 	}
+
+	if err := config.LoadConfig(); err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("app: %+v\n", config.AppInstance)
 }

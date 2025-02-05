@@ -3,89 +3,53 @@ package files
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-
-	"github.com/spf13/viper"
 )
 
-// INFO: can be changed if needed
-func Write(data []byte) error {
-	path := viper.GetString("todos_path")
+func Write(data []byte, path string) error {
+	//if the file doesnt exists, create it in the given path.
+	//O_TRUNC truncates de files to zero len before writing to it.
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if _, err := file.Write(data); err != nil {
+		return err
+	}
+
+	return file.Sync()
+}
+
+func Create(path string) error {
 	if path == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return err
-		}
-		path = filepath.Join(home, ".config", "todos", "todos.json")
+		return fmt.Errorf("path cannot be empty")
 	}
 
 	file, err := os.Create(path)
 	if err != nil {
-		panic(err)
+		return err
 	}
-
 	defer file.Close()
-
-	_, wErr := file.Write(data)
-	if wErr != nil {
-		panic(wErr)
-	}
-
-	if sErr := file.Sync(); sErr != nil {
-		panic(sErr)
-	}
 
 	return nil
 }
 
-func Create(b []byte) error {
-	home, err := os.UserHomeDir()
-
-	if err != nil {
-		return err
-	}
-
-	file, err := os.Create(filepath.Join(home, viper.GetString("todos.path")))
-	if err != nil {
-		fmt.Println("err creating file: ", err)
-		return err
-	}
-
-	defer file.Close()
-
-	_, wErr := file.Write(b)
-	if wErr != nil {
-		return wErr
-	}
-
-	if syncErr := file.Sync(); syncErr != nil {
-		return syncErr
-	}
-
-	return nil
-}
-
-func Load() ([]byte, error) {
-	home, err := os.UserHomeDir()
-
-	if err != nil {
-		return nil, err
-	}
-
-	path := filepath.Join(home, viper.GetString("todos.path"))
-	_, statErr := os.Stat(path)
-
-	if statErr != nil {
-		err = Create([]byte("[]"))
-		if err != nil {
-			panic(err)
-		}
+func Load(path string) ([]byte, error) {
+	if path == "" {
+		return nil, fmt.Errorf("path cannot be empty")
 	}
 
 	b, err := os.ReadFile(path)
 
 	if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		if os.IsNotExist(err) {
+			if err := Write([]byte(""), path); err != nil {
+				return nil, err
+			}
+			return []byte(""), nil
+		}
+		return nil, err
 	}
 
 	return b, nil

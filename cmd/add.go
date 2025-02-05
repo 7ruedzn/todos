@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 
 	"github.com/7ruedzn/todos/internal/files"
+	"github.com/7ruedzn/todos/internal/models"
 	"github.com/7ruedzn/todos/internal/output"
-	"github.com/7ruedzn/todos/models"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var addCmd = &cobra.Command{
@@ -20,10 +21,12 @@ var addCmd = &cobra.Command{
 
 func runAdd(cmd *cobra.Command, args []string) {
 	todos := models.GetTodos()
+	todosPath := viper.GetString("todos.path")
 	newTodos, todo := models.AddTodo(todos, args[0])
 	b, err := json.Marshal(newTodos)
 	cobra.CheckErr(err)
-	if err = files.Write(b); err != nil {
+
+	if err := files.Write(b, todosPath); err != nil {
 		cobra.CheckErr(err)
 	}
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/7ruedzn/todos/internal/files"
+	"github.com/spf13/viper"
 )
 
 type Todo struct {
@@ -14,10 +15,6 @@ type Todo struct {
 	Description string
 	CreatedAt   time.Time
 	Done        bool
-}
-
-type Todos struct {
-	Todos []Todo
 }
 
 func GetTodo(id int, todos []Todo) (*Todo, error) {
@@ -31,23 +28,27 @@ func GetTodo(id int, todos []Todo) (*Todo, error) {
 }
 
 func GetTodos() []Todo {
-	b, err := files.Load()
+	todos := []Todo{}
+	todosPath := viper.GetString("todos.path")
+	if todosPath == "" {
+		fmt.Println("Todos path is empty: ", todosPath)
+	}
+	b, err := files.Load(todosPath)
 	if err != nil {
-		fmt.Println("Load file err: ", err)
-		if errFile := files.Create([]byte("{}")); errFile != nil {
-			fmt.Println("GET TODOS. Err creating file if cant load file")
-			panic(errFile)
+		if err := files.Create(todosPath); err != nil {
+			fmt.Println("err creating file on get todos", err)
+			panic(err)
 		}
+		return todos
 	}
 
-	b, err = files.Load()
+	b, err = files.Load(todosPath)
 
 	if err != nil {
 		panic(err)
 	}
 
-	todos := []Todo{}
-	if err := json.Unmarshal(b, &todos); err != nil {
+	if err := json.Unmarshal(b, &todos); err != nil && len(b) > 0 {
 		panic(err)
 	}
 
@@ -55,13 +56,16 @@ func GetTodos() []Todo {
 }
 
 func DeleteTodo(id int) error {
+	todosPath := viper.GetString("todos.path")
 	todos := GetTodos()
 
 	if id == 0 || id > len(todos) {
 		return fmt.Errorf("the todo with id %d doesnt exists! See usage with %q or use %q to list your todos!\n", id, "help", "todos list -a")
 	}
 
+	fmt.Println("todos before delete: ", todos)
 	todos = slices.Delete(todos, (id - 1), id)
+	fmt.Println("todos after delete: ", todos)
 
 	//INFO: range returns a COPY of the element, not the pointer.
 	// this way you access directly the todo reference
@@ -69,16 +73,16 @@ func DeleteTodo(id int) error {
 		todos[i].Id = i + 1
 	}
 
+	fmt.Println("todos after id re assign: ", todos)
+
 	b, err := json.Marshal(&todos)
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	err = files.Write(b)
-
-	if err != nil {
-		panic(err)
+	if err := files.Write(b, todosPath); err != nil {
+		return err
 	}
 
 	return nil

@@ -5,8 +5,9 @@ import (
 	"strconv"
 
 	"github.com/7ruedzn/todos/internal/files"
-	"github.com/7ruedzn/todos/models"
+	"github.com/7ruedzn/todos/internal/models"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var completeCmd = &cobra.Command{
@@ -18,6 +19,7 @@ var completeCmd = &cobra.Command{
 }
 
 func runComplete(cmd *cobra.Command, args []string) {
+	todosPath := viper.GetString("todos.path")
 	todos := models.GetTodos()
 	id, err := strconv.Atoi(args[0])
 	if err != nil {
@@ -39,7 +41,7 @@ func runComplete(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	if err := files.Write(b); err != nil {
+	if err := files.Write(b, todosPath); err != nil {
 		panic(err)
 	}
 }

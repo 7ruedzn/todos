@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 
 	"github.com/7ruedzn/todos/internal/files"
+	"github.com/7ruedzn/todos/internal/models"
 	"github.com/7ruedzn/todos/internal/output"
-	"github.com/7ruedzn/todos/models"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var all bool
@@ -20,14 +21,17 @@ var listCmd = &cobra.Command{
 }
 
 func runList(cmd *cobra.Command, args []string) {
-	b, err := files.Load()
+	todosPath := viper.GetString("todos.path")
+	b, err := files.Load(todosPath)
+
 	if err != nil {
-		files.Create([]byte("[]"))
-		panic(err)
+		if err := files.Create(todosPath); err != nil {
+			panic(err)
+		}
 	}
 
 	todos := []models.Todo{}
-	if err := json.Unmarshal(b, &todos); err != nil {
+	if err := json.Unmarshal(b, &todos); err != nil && len(b) > 0 {
 		panic(err)
 	}
 

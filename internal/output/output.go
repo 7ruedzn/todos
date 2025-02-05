@@ -5,7 +5,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/7ruedzn/todos/models"
+	"github.com/7ruedzn/todos/internal/models"
 	"github.com/dustin/go-humanize"
 )
 
