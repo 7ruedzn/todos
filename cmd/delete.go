@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"log/slog"
 	"strconv"
 
-	"github.com/7ruedzn/todos/internal/config"
 	"github.com/7ruedzn/todos/internal/models"
 	"github.com/spf13/cobra"
 )
@@ -14,20 +14,27 @@ var deleteCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1), //TODO: accept more than one id to delete todos
 	Short:   "Delete a todo",
 	Long:    "Delete a todo by it's id.",
-	Run:     runDelete,
+	RunE:    runDelete,
+	PostRun: logDelete,
 }
 
-func runDelete(cmd *cobra.Command, args []string) {
+func logDelete(cmd *cobra.Command, args []string) {
+	slog.Info("Delete completed successfully", "cmd", cmd.Name(), "args", args)
+}
+
+func runDelete(cmd *cobra.Command, args []string) error {
 	id, err := strconv.Atoi(args[0])
 	if err != nil {
-		config.WarningLog.Printf("Couldn't delete todo. Provided %s instead of an todo id of type int\n", args[0])
+		slog.Error("Couldn't parse todo id to int", "cmd", cmd.Name(), "error", err, "args", args[0])
+		return err
 	}
 
 	if err := models.DeleteTodo(id); err != nil {
-		config.ErrorLog.Fatalln("Couldn't delete todo: ", err)
+		slog.Error("Couldn't delete the todo", "cmd", cmd.Name(), "error", err, "id", id)
+		return err
 	}
 
-	config.InfoLog.Printf("Todo with id %d deleted successfully\n", id)
+	return nil
 }
 
 func init() {

@@ -31,10 +31,13 @@ func createFileIfNotExist(paths []string) error {
 
 	for _, v := range paths {
 		if _, err := os.Stat(v); os.IsNotExist(err) {
+			fmt.Println("filee doesnt exist", v)
 			if err := files.Create(v); err != nil {
+				fmt.Println("error creating file path", v)
+				fmt.Println("error", err)
 				return err
 			}
-			return err
+			return nil
 		}
 	}
 

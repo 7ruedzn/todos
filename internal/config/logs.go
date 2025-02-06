@@ -2,15 +2,12 @@ package config
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 )
 
 var (
-	InfoLog    *log.Logger
-	WarningLog *log.Logger
-	ErrorLog   *log.Logger
-	LogFile    *os.File
+	LogFile *os.File
 )
 
 func SetupLogs() error {
@@ -24,9 +21,11 @@ func SetupLogs() error {
 		return err
 	}
 
-	InfoLog = log.New(LogFile, "INFO: ", log.LstdFlags|log.Lshortfile)
-	WarningLog = log.New(LogFile, "WARNING: ", log.LstdFlags|log.Lshortfile)
-	ErrorLog = log.New(LogFile, "ERROR: ", log.LstdFlags|log.Lshortfile)
+	handler := slog.NewJSONHandler(LogFile, &slog.HandlerOptions{
+		AddSource: true,
+	})
+	slogger := slog.New(handler)
+	slog.SetDefault(slogger)
 
 	return nil
 }

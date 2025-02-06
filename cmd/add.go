@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"log/slog"
 
 	"github.com/7ruedzn/todos/internal/config"
 	"github.com/7ruedzn/todos/internal/files"
@@ -16,13 +17,19 @@ var addCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),                                     //TODO: accept more than one descrition to add multiple todos at once
 	Short:   "Add a new todo",                                       // short description of the command
 	Long:    "Add a new todo you're planning or already working on", // long description of the command
-	Run:     runAdd,
+	RunE:    runAdd,
+	PostRun: logAdd,
 }
 
-func runAdd(cmd *cobra.Command, args []string) {
+func logAdd(cmd *cobra.Command, args []string) {
+	slog.Info("Todo with  added successfully", "cmd", cmd.Name(), "args", args)
+}
+
+func runAdd(cmd *cobra.Command, args []string) error {
 	todos, err := models.GetTodos()
 	if err != nil {
-		config.ErrorLog.Fatalln("Couldn't get todos: ", err)
+		slog.Error("Couldn't get todos", "cmd", cmd.Name(), "error", err)
+		return err
 	}
 
 	todosPath := config.AppInstance.Config.TodosPath
@@ -30,15 +37,17 @@ func runAdd(cmd *cobra.Command, args []string) {
 	b, err := json.Marshal(newTodos)
 
 	if err != nil {
-		config.ErrorLog.Fatalf("Couldn't marshal new todos %+v: %v\n", newTodos, err)
+		slog.Error("Couldn't marshal new todos", "cmd", cmd.Name(), "newTodos", newTodos, "error", err)
+		return err
 	}
 
 	if err := files.Write(b, todosPath); err != nil {
-		config.ErrorLog.Fatalf("Couldn't write a new todo with %s: %v: ", string(b), err)
+		slog.Error("Couldn't write the new todo into file", "cmd", cmd.Name(), "bytes", string(b), "path", todosPath, "error", err)
+		return err
 	}
 
-	config.InfoLog.Printf("Todo with id %d added successfully\n", todo.Id)
 	output.ListAddedTodo(todo)
+	return nil
 }
 
 func init() {

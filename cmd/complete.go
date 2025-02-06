@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
-	"os"
+	"log/slog"
 	"strconv"
 
 	"github.com/7ruedzn/todos/internal/config"
@@ -16,41 +16,53 @@ var completeCmd = &cobra.Command{
 	Aliases: []string{"finish", "done"},
 	Short:   "Set a todo as finished!",
 	Long:    "Set a todo you've created as done. This way you can keep track off the complete todos and the still on progress",
-	Run:     runComplete,
+	Args:    cobra.ExactArgs(1),
+	RunE:    runComplete,
+	PostRun: completeLog,
 }
 
-func runComplete(cmd *cobra.Command, args []string) {
+func runComplete(cmd *cobra.Command, args []string) error {
 	todosPath := config.AppInstance.Config.TodosPath
 	todos, err := models.GetTodos()
 	if err != nil {
-		config.ErrorLog.Fatalln("Couldn't get todos: ", err)
+		slog.Error("Couldn't get todos", "cmd", cmd.Name(), "error", err, "path", todosPath)
+		return err
 	}
 
 	id, err := strconv.Atoi(args[0])
 	if err != nil {
-		config.ErrorLog.Fatalf("Couldn't parse %s into type of int: %v\n", os.Args[0], err)
+		slog.Error("Couldn't parse todo id to int", "cmd", cmd.Name(), "error", err, "args", args[0])
+		return err
 	}
 
 	todo, err := models.GetTodo(id, todos)
 	if err != nil {
-		config.ErrorLog.Fatalf("Couldn't get todo by the id %d: %v\n", id, err)
+		slog.Error("Couldn't get todo with id", "cmd", cmd.Name(), "error", err, "args", args[0], "id", id)
+		return err
 	}
 
 	updatedTodos, err := todo.UpdateTodos()
 	if err != nil {
-		config.ErrorLog.Fatalln("Couldn't update the todos: ", err)
+		slog.Error("Couldn't update todos", "cmd", cmd.Name(), "error", err, "args", args[0])
+		return err
 	}
 
 	b, err := json.Marshal(&updatedTodos)
 	if err != nil {
-		config.ErrorLog.Fatalf("Couldn't marshal %+v: %v\n", *updatedTodos, err)
+		slog.Error("Couldn't marshal updated todos", "cmd", cmd.Name(), "error", err, "args", args[0])
+		return err
 	}
 
 	if err := files.Write(b, todosPath); err != nil {
-		config.ErrorLog.Fatalf("Couldn't write %s into the todos file: %v\n", string(b), err)
+		slog.Error("Couldn't write the updated todo into file", "cmd", cmd.Name(), "bytes", string(b), "path", todosPath, "error", err)
+		return err
 	}
 
-	config.InfoLog.Printf("Todo with id %d completed successfully\n", todo.Id)
+	return nil
+}
+
+func completeLog(cmd *cobra.Command, args []string) {
+	slog.Info("Todo was completed successfully", "cmd", cmd.Name(), "args", args)
 }
 
 func init() {
